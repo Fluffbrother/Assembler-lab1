@@ -9,10 +9,9 @@
 	la $t0, max_size # MIN
 	la $t1, min_size # MAX
 
-	subu $sp, $sp, 4
+	subu $sp, $sp, 16
 	la $a0, start_str
 	jal print
-	addu $sp, $sp, 4
 
 	# in-matning
 	li $t2, 0
@@ -41,12 +40,11 @@ new_max:
 	j loop
 
 exit:
-	subu $sp, $sp, 12
 	la $a0, end_str
 	move $a1, $t0
 	move $a2, $t1
 	jal print
-	addu $sp, $sp, 12
+	addu $sp, $sp, 16
 
 	li $v0, 10
 	syscall
