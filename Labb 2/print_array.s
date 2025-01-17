@@ -5,11 +5,14 @@
 .text
 	.globl print_array
 print_array:
-	subu $sp, $sp, 8
+	subu $sp, $sp, 24
 
 	sw $a0, 0($sp) # vec
 	sw $a1, 4($sp) # antal
 	sw $ra, 8($sp) # ra
+	sw $s0, 12($sp) # s0
+	sw $s1, 16($sp) # s1
+	sw $s2, 20($sp) # s2
 
 	# $s0: vec
 	# $s1: antal
@@ -44,7 +47,11 @@ end:
 	
 	addu $sp, $sp, 16
 
+	lw $s2, 20($sp)
+	lw $s1, 16($sp)
+	lw $s0, 12($sp)
+
 	lw $ra, 8($sp)
-	addu $sp, $sp, 8
+	addu $sp, $sp, 24
 
 	jr $ra

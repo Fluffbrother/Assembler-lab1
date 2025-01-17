@@ -1,5 +1,3 @@
-.data
-	string_print: .asciiz "Size: %d\n"
 .text
 	.globl merge_sort
 merge_sort:
