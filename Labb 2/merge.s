@@ -1,106 +1,123 @@
-.data
-antal: .word 10    
-vek: .word 4, 5, 2, 2, 1, 6, 7, 9, 5, 10
-
-.text
-.globl merge
-
+	.globl merge
 merge:
-    subu $sp, $sp, 16         
-    sw   $ra, 12($sp)         
-    sw   $s0, 8($sp)            
-    sw   $s1, 4($sp)            
-    sw   $s2, 0($sp)            
+	subu $sp, $sp, 16
 
-    move $s0, $a0               
-    move $s1, $a1               
+	sw $ra, 0($sp) # ra
+	sw $a0, 4($sp) # a
+	sw $a1, 8($sp) # size
 
-    srl  $s2, $s1, 1           
 
-    li   $t0, 0                
-loop:
-    bge  $t0, $s1, loop_end    
-    sll  $t1, $t0, 2           
-    add  $t2, $s0, $t1         
-    lw   $t3, 0($t2)            
+	# 0($sp): ra
+	# 4($sp): vec
+	# 8($sp): size
+	#
+	# a0: a[size]
+	# a1: size
+	# t0: half
+	# t1: i
+	# t2: j
+	# t3: k
+	# $sp: b[size]
+	# Everything else is fair game!
 
-    la   $t4, antal              
-    add  $t5, $t4, $t1          
-    sw   $t3, 0($t5)            
 
-    addi $t0, $t0, 1         
-    j loop
+	# Init half
+	div $t0, $a1, 2
 
-loop_end:
-    li   $t6, 0              
-    move $t7, $s2           
-    li   $t8, 0                 
+	# Init array on stack
+	mul $t7, $a1, 4
+	subu $sp, $sp, $t7 # b[size]
 
-L1:
-    bge  $t6, $s2, rest_j 
-    bge  $t7, $s1, rest_i 
+	# Initialize copy values of a into b (within size range)
+	li $t1, 0
+	move $t5, $sp # $t5: b
+	move $t6, $a0 # $t6: a
+clone_loop:
+	bge $t1, $a1, exit_clone_loop
 
-    sll  $t1, $t6, 2          
-    la   $t4, antal             
-    add  $t2, $t4, $t1         
-    lw   $t9, 0($t2)            
+	lw $t7, ($t6)
+	sw $t7, ($t5)
+	
+	addi $t5, $t5, 4 # Get the address of b[i]
+	addi $t6, $t6, 4 # Get the address of a[i]
+	addi $t1, $t1, 1
 
-    sll  $t3, $t7, 2           
-    add  $t5, $t4, $t3         
-    lw   $t0, 0($t5)            
+	j clone_loop
+exit_clone_loop:
 
-    ble  $t9, $t0, if
+	# Init integers
+	li $t1, 0 # i
+	move $t2, $t0 # j
+	li $t3, 0 # k
 
-    sll  $t1, $t8, 2            
-    add  $t2, $s0, $t1        
-    sw   $t0, 0($t2)           
-    addi $t7, $t7, 1           
-    j continue
 
-if:
-    sll  $t1, $t8, 2         
-    add  $t2, $s0, $t1          
-    sw   $t9, 0($t2)           
-    addi $t6, $t6, 1           
+while_loop_1:
+bge $t1, $t0, exit_while_loop_1
+bge $t2, $a1, exit_while_loop_1
 
-continue:
-    addi $t8, $t8, 1            
-    j L1
+	# $t4 being specific index * 4 to get the new pointer position
+	mul $t4, $t1, 4
+	add $t5, $sp, $t4 # b[i] address
 
-rest_i:
-    bge  $t6, $s2, end
-    sll  $t1, $t6, 2
-    la   $t4, antal
-    add  $t2, $t4, $t1
-    lw   $t9, 0($t2)
+	mul $t4, $t3, 4
+	add $t6, $a0, $t4 # a[k] address
 
-    sll  $t3, $t8, 2
-    add  $t5, $s0, $t3
-    sw   $t9, 0($t5)
+	mul $t4, $t2, 4
+	add $t7, $sp, $t4 # b[j] address
 
-    addi $t6, $t6, 1
-    addi $t8, $t8, 1
-    j rest_i
+	lw $t8, ($t5) # b[i] value
+	lw $t9, ($t7) # b[j] value
+	bgt $t8, $t9, while_loop_1_else
+		sw $t8, ($t6) # a[k] = b[i]
+		addi $t1, $t1, 1 # i++
+		j while_loop_1_iter_end
+	while_loop_1_else:
+		sw $t9, ($t6) # a[k] = b[j]
+		addi $t2, $t2, 1 # j++
 
-rest_j:
-    bge  $t7, $s1, end
-    sll  $t1, $t7, 2
-    la   $t4, antal
-    add  $t2, $t4, $t1
-    lw   $t9, 0($t2)
+while_loop_1_iter_end:
+	addi $t3, $t3, 1 # k++
+	j while_loop_1
+exit_while_loop_1:
 
-    sll  $t3, $t8, 2
-    add  $t5, $s0, $t3
-    sw   $t9, 0($t5)
 
-    addi $t7, $t7, 1
-    addi $t8, $t8, 1
-    j rest_j
+while_loop_2:
+bge $t1, $t0, exit_while_loop_2
+	mul $t4, $t3, 4
+	add $t6, $a0, $t4 # a[k] address
 
-end:
-    lw   $ra, 12($sp)
-    lw   $s0, 8($sp)
-    lw   $s1, 4($sp)
-    lw   $s2, 0($sp)
-    addi $sp, $sp, 16
-    jr   $ra
+	mul $t4, $t1, 4
+	add $t5, $sp, $t4 # b[i] address
+	lw $t8, ($t5) # b[i] value
+	
+	sw $t8, ($t6) # a[k] = b[i]
+
+	addi $t1, $t1, 1 # i++
+	addi $t3, $t3, 1 # k++
+	j while_loop_2
+exit_while_loop_2:
+
+while_loop_3:
+bge $t2, $a1, exit_while_loop_3
+	mul $t4, $t3, 4
+	add $t6, $a0, $t4 # a[k] address
+
+	mul $t4, $t2, 4
+	add $t7, $sp, $t4 # b[j] address
+	lw $t9, ($t7) # b[j] value
+
+	sw $t9, ($t6) # a[k] = b[j]
+
+	addi $t2, $t2, 1 # j++
+	addi $t3, $t3, 1 # k++
+	j while_loop_3
+exit_while_loop_3:
+
+# clean up
+	mul $t7, $a1, 4
+	addu $sp, $sp, $t7
+
+	lw $ra, 0($sp)
+	addu $sp, $sp, 16
+
+	jr $ra
